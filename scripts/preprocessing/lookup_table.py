@@ -30,24 +30,37 @@ def process_file(filename):
 
     return pd.DataFrame({'id':ids, 'xml':strings})
 
-def extract_data(root, cc):
+def dateof(filename):
+    match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
+    if not match:
+        return None
+    return match.group()
+
+def find_session_files(root):
+    ret = list()
+    for file in glob.glob(f'{root}/**/*.ana.xml', recursive=True):
+        if dateof(file) is not None:
+            ret.append(file)
+    return ret
+
+def create_temp_directory(cc):
     while True:
         try:
-            dir = f'temp/lookup/{''.join(random.choices(string.ascii_lowercase, k=16))}'
+            dir = f'temp/{cc}/{''.join(random.choices(string.ascii_lowercase, k=16))}'
             os.makedirs(dir, exist_ok=False)
             break
         except:
             pass
+    
+    return dir
 
-    for file in tqdm(glob.glob(f'{root}/**/*.ana.xml', recursive=True)):
-        match = re.search(r'\d{4}-\d{2}-\d{2}', file)
+def extract_data(root, cc):
+    dir = create_temp_directory(cc)
 
-        if not match:
-            continue
-
+    for file in tqdm(find_session_files(root)):
+        date = dateof(file)
         out_filename = f'{dir}/{os.path.basename(file)}.parquet'
 
-        date = match.group()
         try:
             data = process_file(file)
         except exception as e:
