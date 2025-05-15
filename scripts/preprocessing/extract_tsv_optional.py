@@ -52,8 +52,8 @@ def process_files(tei_filename, out_filename, meta_filename=None):
     if meta_filename:
         df = merge_files(meta_filename, tei_filename)
     else:
-        out = extract_entities(tei_filename)
-        out['Text_ID'] = out['Text_ID'].astype(str)
+        df = extract_entities(tei_filename)
+        df['Text_ID'] = df['Text_ID'].astype(str)
 
     if out_filename.endswith('.parquet'):
         df.to_parquet(out_filename)
