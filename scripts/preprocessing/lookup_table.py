@@ -16,6 +16,9 @@ def process_file(filename):
     ids = list()
     strings = list()
     for tag_u in root.findall('.//tei:u', namespaces=namespaces):
+        names = list(tag_u.findall('.//tei:name', namespaces=namespaces))
+        if len(names) == 0:
+            continue
         id = tag_u.attrib[f'{xml}id']
         text = etree.tostring(tag_u, encoding='utf-8')
         ids.append(id)
@@ -39,20 +42,21 @@ def extract_data(root, cc):
             continue
 
         out_filename = f'{dir}/{os.path.basename(file)}.parquet'
-        if os.path.exists(out_filename):
-            continue
 
         date = match.group()
         data = process_file(file)
         data['date'] = date
         data['iso_cc'] = cc
         data['date'] = pd.to_datetime(data['date']).dt.date
-        data.to_parquet(out_filename)
+        data.to_parquet(out_filename, compression='zstd')
     return dir
 
 def main(args):
+    if len(args) == 0:
+        print('Usage\npython lookup_table.py corpus_directory country_code')
     dir = args[0]
-    out = extract_data(dir, 'GB')
+    cc = args[1]
+    out = extract_data(dir, cc)
     print(f'Wrote data to {out}')
 
 if __name__ == '__main__':
