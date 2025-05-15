@@ -34,9 +34,12 @@ def extract_entities(filename):
         #session_id = filename.split(".ana.xml")[0]
         for sententece in speech.findall('.//tei:s', namespaces=namespaces):
             names = list(sententece.findall('.//tei:name', namespaces=namespaces))
-            # Todo extract lemmatized version
             for name in names:
-                fragment_id = name.find('.//tei:w', namespaces=namespaces).attrib[xml+'id']
+                # Skip if name doesn't contain word
+                word = name.find('.//tei:w', namespaces=namespaces)
+                if word is None:
+                    continue
+                fragment_id = word.attrib[xml+'id']
                 text = name.xpath('string()')
                 text = re.sub(r'\n', ' ', text)
                 ids.append(id)
