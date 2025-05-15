@@ -63,7 +63,7 @@ def extract_data(root, cc):
 
         try:
             data = process_file(file)
-        except exception as e:
+        except Exception as e:
             logger.warning(f"the following exception occurred during processing of file {file}: {e}")
             
         data['date'] = date

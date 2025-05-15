@@ -46,7 +46,7 @@ def extract_entities(filename):
                 #session_ids.append(session_id)
                 name_types.append(name.attrib['type'])
                 positions.append(fragment_id)
-                texts.append(text)
+                texts.append(text.strip())
     df['ID'] = ids
     #df["Text_ID"] = session_ids
     df['name_type'] = name_types
