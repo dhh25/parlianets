@@ -7,6 +7,10 @@ import random
 from tqdm import tqdm
 import os
 import string
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='lookup_table_exceptions.log', level=logging.INFO)
 
 def process_file(filename):
     xml = r'{http://www.w3.org/XML/1998/namespace}'
@@ -44,7 +48,11 @@ def extract_data(root, cc):
         out_filename = f'{dir}/{os.path.basename(file)}.parquet'
 
         date = match.group()
-        data = process_file(file)
+        try:
+            data = process_file(file)
+        except exception as e:
+            logger.warning(f"the following exception occurred during processing of file {file}: {e}")
+            
         data['date'] = date
         data['iso_cc'] = cc
         data['date'] = pd.to_datetime(data['date']).dt.date
