@@ -60,11 +60,11 @@ def merge_files(meta_filename, tei_filename):
 
     out = extract_entities(tei_filename)
     out['ID'] = out['ID'].astype(str)
-    print(out.head())
+    #print(out.head())
 
     table = pd.read_csv(fix_tsv_formatting(meta_filename), sep='\t')
     table['ID'] = table['ID'].astype(str)
-    print(table.head())
+    #print(table.head())
 
     merged = table.merge(out, left_on='ID', right_on='ID', how='inner')
 
