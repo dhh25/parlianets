@@ -2,23 +2,36 @@ import re
 import pandas as pd
 from lxml import etree
 import sys
+from io import StringIO
 from pathlib import Path
+
+
+def fix_tsv_formatting(meta_filename):
+    fixed_tsv = str()
+    with open(meta_filename, "r", encoding="utf-8") as rf_meta:
+        for line in rf_meta:
+            fixed_tsv += re.sub(r"\s*\n", "\n", line)
+    
+    return StringIO(fixed_tsv)
+
 
 def extract_entities(filename):
     xml = r'{http://www.w3.org/XML/1998/namespace}'
     tree = etree.parse(filename)
     namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}
     root = tree.getroot()
-    cols=['Text_ID', 'name_type', 'position', 'text']
+    cols=["ID", 'name_type', 'position', 'text']
     df = pd.DataFrame(columns=cols)
 
     ids = list()
+    #session_ids = list()
     name_types = list()
     positions = list()
     texts = list()
 
     for speech in root.findall('.//tei:u', namespaces=namespaces):
         id = speech.attrib[xml+'id']
+        #session_id = filename.split(".ana.xml")[0]
         for sententece in speech.findall('.//tei:s', namespaces=namespaces):
             names = list(sententece.findall('.//tei:name', namespaces=namespaces))
             # Todo extract lemmatized version
@@ -27,10 +40,12 @@ def extract_entities(filename):
                 text = name.xpath('string()')
                 text = re.sub(r'\n', ' ', text)
                 ids.append(id)
+                #session_ids.append(session_id)
                 name_types.append(name.attrib['type'])
                 positions.append(fragment_id)
                 texts.append(text)
-    df['Text_ID'] = ids
+    df['ID'] = ids
+    #df["Text_ID"] = session_ids
     df['name_type'] = name_types
     df['position'] = positions
     df['text'] = texts
@@ -38,13 +53,17 @@ def extract_entities(filename):
     return df
 
 def merge_files(meta_filename, tei_filename):
+    pd.set_option('display.max_column', None)
+
     out = extract_entities(tei_filename)
-    out['Text_ID'] = out['Text_ID'].astype(str)
+    out['ID'] = out['ID'].astype(str)
+    print(out.head())
 
-    table = pd.read_csv(meta_filename, sep='\t')
-    table['Text_ID'] = table['Text_ID'].astype(str)
+    table = pd.read_csv(fix_tsv_formatting(meta_filename), sep='\t')
+    table['ID'] = table['ID'].astype(str)
+    print(table.head())
 
-    merged = table.merge(out, left_on='Text_ID', right_on='Text_ID', how='inner')
+    merged = table.merge(out, left_on='ID', right_on='ID', how='inner')
 
     return merged
 
