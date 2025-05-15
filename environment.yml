@@ -5,3 +5,6 @@ dependencies:
   - pandas
   - pathlib
   - lxml
+  - pip
+  - pip:
+      - saxonche
