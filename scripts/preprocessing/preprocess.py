@@ -45,10 +45,10 @@ if __name__ == '__main__':
     os.makedirs(out_folder, exist_ok=True)
     for year in years:
         lookup_files = glob(lookup_dir + "/*" + year + "*.parquet")
-        df = pl.read_parquet(lookup_files)
+        df = pl.read_parquet(lookup_files, schema=dict(id=pl.String, xml=pl.Binary, date=pl.Date, iso_cc=pl.String))
         df.write_parquet(f"{out_folder}/{year}_texts.parquet", compression='zstd')
         extract_files = glob(extract_dir + "/*" + year + "*.parquet")
-        df = pl.read_parquet(extract_files)
+        df = pl.read_parquet(extract_files, schema=dict(ID=pl.String, name_type=pl.String, position=pl.String, text=pl.String))
         df.write_parquet(f"{out_folder}/{year}_entities.parquet", compression='zstd')
     shutil.rmtree(lookup_dir)
     shutil.rmtree(extract_dir)
