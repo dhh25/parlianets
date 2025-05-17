@@ -8,6 +8,9 @@ from itertools import islice
 import logging
 from pathlib import Path
 import os
+import country_converter as coco
+import pandas as pd
+from multiprocessing import Pool, cpu_count
 
 os.makedirs("topic_modeling_results/logs", exist_ok=True)
 
@@ -92,26 +95,30 @@ def extract_topics(sentence, context, model, tokenizer):
     return dict(islice(probabilities.items(), 5))
 
 
-def main(target_dir=None):
+def main(target_dir=None, batch_size=100, country=None, year=None, filter_=None):
     # scan parquet files as lazyframes
     logging.info("Loading parquet datasets...")
-    lf_entities = pl.scan_parquet(f'{target_dir}/**/*_entities.parquet')#.filter(pl.col('name_type') == 'LOC')
-    lf_texts = pl.scan_parquet(f'{target_dir}/**/*_texts.parquet')
+    if year is None:
+        year = ""
+    if filter_ is None:
+        filter_ = True
+    lf_entities = pl.scan_parquet(f'{target_dir}/**/{year}*_entities.parquet').filter(filter_ & (pl.col('text') != country))
+    lf_texts = pl.scan_parquet(f'{target_dir}/**/{year}*_texts.parquet')
 
     # create an index to retrieve the xml text from the id (full texts make lf_texts too large to load into memory)
     texts_index = lf_texts.select('id').with_row_index('idx')
 
-    logging.info("Loading model and tokenizer...")
+    logging.info(f"{country}-{year}: Loading model and tokenizer...")
     model = get_model()
     tokenizer = get_tokenizer()
-    logging.info("Model and tokenizer loaded.")
+    logging.info(f"{country}-{year}: Model and tokenizer loaded.")
 
     num_entities = lf_entities.select(pl.len()).collect().item()
-    logging.info(f"Processing {num_entities} entities...")
+    logging.info(f"{country}-{year}: Processing {num_entities} entities...")
 
     results = []
     batch_count = 0
-    save_every = 10
+    save_every = batch_size
     output_dir = f'./topic_modeling_results/{Path(target_dir).name}'
     os.makedirs(output_dir, exist_ok=True)
 
@@ -123,60 +130,71 @@ def main(target_dir=None):
         position = entity['position']
         text_id = entity['ID']
 
-        logging.info(f"Processing sentence {i}")
+        if not is_country(entity['text']):
+            continue
+
+
+        # logging.info(f"{country}-{year}: Processing sentence {i}")
 
         # extract the sentence from the xml text
         sentence = extract_hierarchical(
-            text_id, position, lf_texts, texts_index, levels=1)
+                text_id, position, lf_texts, texts_index, levels=1)
 
-        logging.info(f"Entity: {entity['text']}, {entity['name_type']}")
-        logging.info(f"Sentence: {sentence}")
+        logging.info(f"{country}-{year}: Entity: {entity['text']}, {entity['name_type']}")
+        # logging.info(f"{country}-{year}: Sentence: {sentence}")
         if not sentence:
             logging.warning(
-                f"Skipping entity {i}: could not extract sentence.")
+                    f"{country}-{year}: Skipping entity {i}: could not extract sentence.")
             continue
 
         # extract the context from the xml text
         context = extract_hierarchical(
-            text_id, position, lf_texts, texts_index, levels=2)
+                text_id, position, lf_texts, texts_index, levels=2)
         # remove the sentence from the context
         context = context.replace(
-            sentence, '') if context != sentence else context
+                sentence, '') if context != sentence else context
 
-        logging.info(f"Context: {context}")
+        # logging.info(f"{country}-{year}: Context: {context}")
         topics = extract_topics(sentence, context, model, tokenizer)
 
-        logging.info(f"Topics: {topics}")
-        logging.info('----')
+        # logging.info(f"{country}-{year}: Topics: {topics}")
+        # logging.info(f'{country}-{year}: ----')
 
         results.append({
-            "text_id": text_id,
-            "position": position,
-            "sentence": sentence,
-            "context": context,
-            "topics": str(topics)
+                "text_id": text_id,
+                "position": position,
+                "sentence": sentence,
+                "context": context,
+                "topics": str(topics)
 
-        })
+            })
 
         if len(results) >= save_every:
-            batch_path = f"{output_dir}/{Path(target_dir).name}_{batch_count}.parquet"
-            pl.DataFrame(results).write_parquet(batch_path)
-            logging.info(f"Saved batch {batch_count} to {batch_path}")
-            results.clear()
-            batch_count += 1
+                batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
+                pl.DataFrame(results).write_parquet(batch_path)
+                logging.info(f"{country}-{year}: Saved batch {batch_count} to {batch_path}")
+                results.clear()
+                batch_count += 1
 
     if results:
-        batch_path = f"{output_dir}/{Path(target_dir).name}_{batch_count}.parquet"
+        batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
         pl.DataFrame(results).write_parquet(batch_path)
-        logging.info(f"Saved final batch {batch_count} to {batch_path}")
+        logging.info(f"{country}-{year}: Saved final batch {batch_count} to {batch_path}")
 
+    logging.info(f"{country}-{year}: Processing complete.")
 
-    logging.info("Processing complete.")
+# TODO proper file for complete list of non-country entities of interest
+COUNTRIES = set(pd.read_csv(coco.COUNTRY_DATA_FILE, sep="\t").name_short.str.lower().values) | {"europe", "eu", "european union", "nato", "un", "United Nations"}
 
-
-
-target_dir = './GB-PARQUETS/'
+def is_country(text):
+    return text.lower() in COUNTRIES
 
 
 if __name__ == "__main__":
-    main(target_dir=target_dir)
+    country = "Finland"
+    target_dir = f'../ParlaMint_preprocessed/{coco.convert(country, to="iso2")}'
+    years = sorted({int(x[:4]) for x in os.listdir(target_dir)})
+    batch_size = 100
+    filter_ = pl.col('name_type') == 'LOC'
+    with Pool(cpu_count() - 4) as pool:
+        pool.starmap(main, [(target_dir, batch_size, country, year, filter_) for year in years])
