@@ -1,3 +1,5 @@
+import shutil
+
 import polars as pl
 from lxml import etree
 import re
@@ -191,10 +193,18 @@ def is_country(text):
 
 
 if __name__ == "__main__":
-    country = "Finland"
-    target_dir = f'../ParlaMint_preprocessed/{coco.convert(country, to="iso2")}'
+    country = "Sweden"
+    iso_cc = coco.convert(country, to="iso2")
+    target_dir = f'../ParlaMint_preprocessed/{iso_cc}'
     years = sorted({int(x[:4]) for x in os.listdir(target_dir)})
     batch_size = 100
     filter_ = pl.col('name_type') == 'LOC'
     with Pool(cpu_count() - 4) as pool:
         pool.starmap(main, [(target_dir, batch_size, country, year, filter_) for year in years])
+
+    in_folder = f"scripts/topic_modeling_results/{iso_cc}"
+    df = pl.read_parquet(in_folder)
+    out_folder = "../ParlaMint_topics"
+    os.makedirs(out_folder, exist_ok=True)
+    df.write_parquet(f"{out_folder}/{iso_cc}_topics.parquet", compression='zstd')
+    shutil.rmtree(in_folder)
