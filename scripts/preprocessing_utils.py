@@ -11,9 +11,9 @@ def get_years_from_filenames(filenames):
     return sorted({int(re.search(r"[1,2]\d{3}", x).group(0)) for x in filenames if x.endswith("parquet")})
 
 
-# TODO this is still heuristic
+# TODO this is still (very) heuristic -> e.g., OECD, G7, G20 etc. missing -> you need to decide what should go in here
 def get_entities_of_interest():
-    countries = set(pd.read_csv(coco.COUNTRY_DATA_FILE, sep="\t").name_short.str.lower().values) | {"usa", "united states", "united states of america", "us"}
+    countries = set(pd.read_csv(coco.COUNTRY_DATA_FILE, sep="\t").name_short.str.lower().values) | {"usa", "united states", "united states of america", "us", "holland"}
     regions = {"europe", "eu", "european union", "nato", "un", "united nations"}
     continents = {"europe", "africa", "america", "asia", "australia", "oceania"}
     directions1 = {"south", "north"}
@@ -24,7 +24,9 @@ def get_entities_of_interest():
     directions4 = {"-".join(x) for x in product(directions1, directions2, continents)}
     directions5 = {" ".join(x) for x in product(directions1, continents)}
     directions6 = {" ".join(x) for x in product(directions2, continents)}
-    return countries | regions | continents | directions3 | directions4 | directions5 | directions6
+    directions7 = {" ".join(x) for x in product(directions1alt, continents)}
+    directions8 = {"-".join(x) for x in product(directions2alt, continents)}
+    return countries | regions | continents | directions3 | directions4 | directions5 | directions6 | directions7 | directions8
 
 
 def is_of_interest(text, entities_of_interest):
