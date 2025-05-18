@@ -39,7 +39,7 @@ def isword(n):
 def ispunct(n):
     return n.tag == r'{http://www.tei-c.org/ns/1.0}pc' 
 
-# Returns subarray containing up to width first words (w)
+# Returns index of first element after width words
 def limitwindow(nodel, width):
     if width == 0:
         return 0
