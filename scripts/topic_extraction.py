@@ -1,8 +1,6 @@
 import shutil
 
 import polars as pl
-from lxml import etree
-import re
 import torch
 from tqdm import trange
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -11,8 +9,11 @@ import logging
 from pathlib import Path
 import os
 import country_converter as coco
-import pandas as pd
 from multiprocessing import Pool, cpu_count
+import argparse
+
+from scripts.preprocessing_utils import get_years_from_filenames, get_entities_of_interest, is_of_interest, \
+    to_text_content, xml_from_text_id, process_name_node, get_country_name
 
 os.makedirs("topic_modeling_results/logs", exist_ok=True)
 
@@ -24,34 +25,6 @@ logging.basicConfig(
         logging.FileHandler("topic_modeling_results/logs/topic_modeling.log", mode='a', encoding='utf-8')
     ]
 )
-
-
-def find_name(position, root):
-    namespaces = {'tei': 'http://www.tei-c.org/ns/1.0'}
-    xmlspec = r'{http://www.w3.org/XML/1998/namespace}'
-    idstring = f'{xmlspec}id'
-
-    return root.find(f'.//*[@{idstring}=\'{position}\']', namespaces=namespaces).getparent()
-
-def to_text_content(node):
-    rawtxt = ''.join(node.itertext())
-    return re.sub(r'\s+', ' ', rawtxt).strip()
-
-def xml_from_text_id(text_id, texts_df, texts_index_df):
-    idx = texts_index_df.filter(pl.col('id') == text_id).select('idx').collect().item()
-    xmlstr = texts_df.slice(idx, 1).select('xml').collect().item().decode()
-    return etree.fromstring(xmlstr)
-
-def process_name_node(position, unode, levels=0, transform_fn=to_text_content):
-    node = find_name(position, unode)
-
-    while(levels > 0):
-        if node.getparent() is None:
-            break
-        node = node.getparent()
-        levels -= 1
-
-    return transform_fn(node)
 
 
 def extract_hierarchical(text_id, position, texts_df, texts_index_df, levels=0, transform_fn=to_text_content):
@@ -104,7 +77,13 @@ def main(target_dir=None, batch_size=100, country=None, year=None, filter_=None)
         year = ""
     if filter_ is None:
         filter_ = True
-    lf_entities = pl.scan_parquet(f'{target_dir}/**/{year}*_entities.parquet').filter(filter_ & (pl.col('text') != country))
+    entities_of_interest = get_entities_of_interest()
+    lf_entities = pl.scan_parquet(f'{target_dir}/**/{year}*_entities.parquet'
+                ).filter(filter_ & (pl.col('text') != country)
+                ).with_columns(
+                    pl.col("text").str.to_lowercase(),
+                    pl.col("ID").str.extract("[1-2][0-9]{3}-[0-9]{2}-[0-9]{2}", group_index=0).alias("date")
+                ).filter(pl.col("text").is_in(entities_of_interest))
     lf_texts = pl.scan_parquet(f'{target_dir}/**/{year}*_texts.parquet')
 
     # create an index to retrieve the xml text from the id (full texts make lf_texts too large to load into memory)
@@ -124,16 +103,15 @@ def main(target_dir=None, batch_size=100, country=None, year=None, filter_=None)
     output_dir = f'./topic_modeling_results/{Path(target_dir).name}'
     os.makedirs(output_dir, exist_ok=True)
 
-
-
     for i in trange(num_entities):
         # get one row from the lazyframe
         entity = lf_entities.slice(i, 1).collect().to_dicts()[0]
         position = entity['position']
         text_id = entity['ID']
+        date = entity['date']
 
-        if not is_country(entity['text']):
-            continue
+        # if not is_of_interest(entity['text'], entities_of_interest):
+        #     continue
 
 
         # logging.info(f"{country}-{year}: Processing sentence {i}")
@@ -167,8 +145,9 @@ def main(target_dir=None, batch_size=100, country=None, year=None, filter_=None)
                 "position": position,
                 "sentence": sentence,
                 "context": context,
-                "topics": str(topics)
-
+                "topics": str(topics),
+                "date": date,
+                "entity": entity['text']
             })
 
         if len(results) >= save_every:
@@ -185,26 +164,44 @@ def main(target_dir=None, batch_size=100, country=None, year=None, filter_=None)
 
     logging.info(f"{country}-{year}: Processing complete.")
 
-# TODO proper file for complete list of non-country entities of interest
-COUNTRIES = set(pd.read_csv(coco.COUNTRY_DATA_FILE, sep="\t").name_short.str.lower().values) | {"europe", "eu", "european union", "nato", "un", "United Nations"}
 
-def is_country(text):
-    return text.lower() in COUNTRIES
+def merge_parquets(iso2_cc, out_folder, remove=True):
+    in_folder = f"./topic_modeling_results/{iso2_cc}"
+    df = pl.read_parquet(in_folder)
+    os.makedirs(out_folder, exist_ok=True)
+    df.write_parquet(f"{out_folder}/{iso2_cc}_topics.parquet", compression='zstd')
+    if remove:
+        shutil.rmtree(in_folder)
+
 
 
 if __name__ == "__main__":
-    country = "Sweden"
-    iso_cc = coco.convert(country, to="iso2")
-    target_dir = f'../ParlaMint_preprocessed/{iso_cc}'
-    years = sorted({int(x[:4]) for x in os.listdir(target_dir)})
-    batch_size = 100
-    filter_ = pl.col('name_type') == 'LOC'
-    with Pool(cpu_count() - 4) as pool:
-        pool.starmap(main, [(target_dir, batch_size, country, year, filter_) for year in years])
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--iso2_cc", type=str, help="ISO2 country code for country of interest, e.g., FI")
+    parser.add_argument("--preprocessed_dir", type=str, help="Path to preprocessed files (entities + texts), e.g., ../ParlaMint_preprocessed")
+    parser.add_argument("--out_dir", type=str, help="Directory to write merged parquet file, e.g., ../ParlaMint_topics")
+    parser.add_argument("--batch_size", "-b", type=int, default=100, help="Batch size")
+    parser.add_argument("--parallelize", "-p", type=int, default=0,
+                        help="Number of cores to parallelize over. 0 means no parallelization; passing a negative number p computes cpu_count() - p.")
+    args = parser.parse_args()
 
-    in_folder = f"scripts/topic_modeling_results/{iso_cc}"
-    df = pl.read_parquet(in_folder)
-    out_folder = "../ParlaMint_topics"
-    os.makedirs(out_folder, exist_ok=True)
-    df.write_parquet(f"{out_folder}/{iso_cc}_topics.parquet", compression='zstd')
-    shutil.rmtree(in_folder)
+    iso2_cc = args.iso2_cc
+    preprocessed_dir = f"{args.preprocessed_dir}/{iso2_cc}"
+    batch_size = args.batch_size
+    country = get_country_name(iso2_cc)
+
+
+    years = get_years_from_filenames(os.listdir(preprocessed_dir))
+    parallelize = cpu_count() - args.parallelize if args.parallelize < 0 else args.parallelize
+    parallelize = min(parallelize, len(years)) # restrict to number of years
+
+    # TODO filtering api currently awkward -> refactor
+    filter_ = pl.col('name_type') == 'LOC'
+    if parallelize != 0:
+        with Pool(parallelize) as pool:
+            pool.starmap(main, [(preprocessed_dir, batch_size, country, year, filter_) for year in years])
+    else:
+        for year in years:
+            main(preprocessed_dir, batch_size, country, year)
+
+    merge_parquets(iso2_cc, args.out_dir, remove=True)
