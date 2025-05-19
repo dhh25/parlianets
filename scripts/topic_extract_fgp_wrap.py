@@ -3,11 +3,12 @@ from topic_extract_fgp import main
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scratch', type=str, required=True)
-    parser.add_argument('--name', type=str, required=True)
-    parser.add_argument('--tfile', type=str, required=True)
-    # parser.add_argument('--efile', type=str, required=True)
-    parser.add_argument('--filtered_dir', type=str, required=True)
+    parser.add_argument('--scratch', type=str, required=False)
+    parser.add_argument('--name', type=str, required=False)
+    parser.add_argument('--tfile', type=str, required=False)
+    parser.add_argument('--efile', type=str, required=False)
+    parser.add_argument('--filtered_dir', type=str, required=False)
+    parser.add_argument('--preproc_dir', type=str, required=False)
     args = parser.parse_args()
 
     main(
