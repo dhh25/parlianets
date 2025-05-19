@@ -31,6 +31,7 @@ def ne2cc(ne, cc_dict, cap_dict):
     replacements = {
         "vatican":"VA",
         "us":"US",
+        "usa":"US",
         "united states of america"	:"US",
         "holland"	:"NL",
     }
