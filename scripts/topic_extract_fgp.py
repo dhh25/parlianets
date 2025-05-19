@@ -91,14 +91,14 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
             })
 
         if len(results) >= save_every:
-                batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
+                batch_path = f"{output_dir}/{iso2_cc}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
                 pl.DataFrame(results).write_parquet(batch_path)
                 logging.info(f"{iso2_cc}-{year}: Saved batch {batch_count} to {batch_path}")
                 results.clear()
                 batch_count += 1
 
     if results:
-        batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
+        batch_path = f"{output_dir}/{iso2_cc}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
         pl.DataFrame(results).write_parquet(batch_path)
         logging.info(f"{iso2_cc}-{year}: Saved final batch {batch_count} to {batch_path}")
 
