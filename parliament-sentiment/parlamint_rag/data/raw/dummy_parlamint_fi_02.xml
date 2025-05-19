@@ -1,0 +1,50 @@
+
+    <TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="fi">
+      <teiHeader>
+        <fileDesc>
+          <titleStmt>
+            <title>Test Parliament Transcript 2</title>
+          </titleStmt>
+          <publicationStmt>
+            <p>Test data</p>
+          </publicationStmt>
+          <sourceDesc>
+            <p>Manually created for testing.</p>
+          </sourceDesc>
+        </fileDesc>
+        <profileDesc>
+            <particDesc>
+                <listPerson>
+                    <person xml:id="speaker1">
+                        <persName>
+                            <forename>Matti</forename>
+                            <surname>Meikäläinen</surname>
+                        </persName>
+                    </person>
+                     <person xml:id="speaker2">
+                        <persName>Kalle Kulmakivi</persName>
+                    </person>
+                </listPerson>
+            </particDesc>
+        </profileDesc>
+      </teiHeader>
+      <text>
+        <body>
+          <div type="debateSection">
+            <u xml:id="u1" who="#speaker1">
+              <seg xml:id="u1.s1">Aivan toinen aloitus.</seg>
+              <seg xml:id="u1.s2">Ja tämä on toinen.</seg>
+            </u>
+            <u xml:id="u2" who="#speaker2">
+              <seg xml:id="u2.s1">Kalle Kulmakivi puhuu nyt.</seg>
+              <seg xml:id="u2.s2">Hän jatkaa vielä hetken.</seg>
+              <seg xml:id="u2.s3">Ja lopettaa tähän.</seg>
+            </u>
+            <u xml:id="u3" who="#unknownSpeaker">
+                <seg xml:id="u3.s1">Tuntematon puhuja.</seg>
+            </u>
+          </div>
+        </body>
+      </text>
+    </TEI>
+    

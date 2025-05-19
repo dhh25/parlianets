@@ -16,7 +16,7 @@ def to_text_content(node):
 
 def to_lemmas(node):
     content = []
-    for n in node.iter():
+    for n in node.iter(r'{http://www.tei-c.org/ns/1.0}w', r'{http://www.tei-c.org/ns/1.0}pc'):
         if isword(n):
             content.append(n.attrib['lemma'].strip())
         if ispunct(n):
