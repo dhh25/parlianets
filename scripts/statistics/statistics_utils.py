@@ -26,10 +26,21 @@ def build_country_code_dicts():
 # returns None otherwise
 def ne2cc(ne, cc_dict, cap_dict):
     ne_lower = ne.lower()
+
+    #edge case handling
+    replacements = {
+        "vatican":"VA",
+        "us":"US",
+        "united states of america"	:"US",
+        "holland"	:"NL",
+    }
+
     if ne_lower in cc_dict.keys():
         return cc_dict[ne_lower]
     elif ne_lower in cap_dict.keys():
         return cap_dict[ne_lower]
+    elif ne_lower in replacements.keys():
+        return replacements[ne_lower]
     else:
         return None
 
