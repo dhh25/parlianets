@@ -94,3 +94,25 @@ def extract_word_window(position, text_id, texts_df, width=0, transform_fn=to_te
         node.getparent().remove(node)
 
     return transform_fn(unode)
+
+def extract_paragraph_window(position, text_id, texts_df, pgraph=0, transform_fn=to_text_content):
+    unode = xml_from_text_id(text_id, texts_df)
+    namenode = find_name(position, unode)
+    segment = namenode.getparent().getparent()
+
+    children = list(unode.getchildren())
+    segment_index = -1
+
+    for i, child in enumerate(children):
+        if child == segment:
+            segment_index = i
+            break
+
+    min_id = max(0, segment_index - pgraph)
+    max_id = min(len(children), segment_index + pgraph)
+
+    for i, child in enumerate(children):
+        if i < min_id or i > max_id:
+            unode.remove(child)
+
+    return transform_fn(unode)
