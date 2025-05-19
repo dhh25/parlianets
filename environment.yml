@@ -3,9 +3,9 @@ name: parlianets_env
 dependencies:
   - python=3.12
   - pandas
-  - polars
   - pathlib
   - lxml
   - pip
   - pip:
+      - polars
       - saxonche
