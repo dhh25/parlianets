@@ -6,6 +6,10 @@ dependencies:
   - pathlib
   - lxml
   - pip
+  - tqdm
+  - transformers
   - pip:
       - polars
       - saxonche
+      - torch
+      - country_converter
