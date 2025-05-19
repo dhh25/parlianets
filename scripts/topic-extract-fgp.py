@@ -107,14 +107,12 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
 #target_dir=None, scratch=None, entities_file=None, texts_file=None,
 #batch_size=100, iso2_cc=None, year="", context=None, context_length=None):
 
-if __name__ == "__main__":
-    main(
-        './test/target',
-        './test/scratch',
-        './data',
-        './data/FI/2021_texts.parquet',
-        batch_size=100,
-        # iso2_cc='FI',
-        # year=2021,
-        context='segment'
-    )
+# if __name__ == "__main__":
+#     main(
+#         target_dir='./test/target',
+#         scratch='./test/scratch',
+#         filtered_dir='./data', # directory containing CC_filtered.parquet files
+#         texts_file='./data/FI/2021_texts.parquet', # text file, iso2cc and year inferred from this
+#         batch_size=100,
+#         context='segment'
+#     )
