@@ -13,18 +13,6 @@ import argparse
 
 from preprocessing_utils import get_years_from_filenames, xml_from_text_id, process_name_node, to_text_content, extract_word_window
 
-os.makedirs("topic_modeling_results/logs", exist_ok=True)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        #logging.StreamHandler(sys.stdout),
-        logging.FileHandler("topic_modeling_results/logs/topic_modeling.log", mode='a', encoding='utf-8')
-    ]
-)
-
-
 def extract_hierarchical(text_id, position, texts_df, texts_index_df, levels=0, transform_fn=to_text_content):
     unode = xml_from_text_id(text_id, texts_df, texts_index_df)
     return process_name_node(position, unode, levels, transform_fn)
@@ -69,6 +57,17 @@ def extract_topics(sentence, context, model, tokenizer):
 
 
 def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=None, context=None, context_length=None):
+    os.makedirs("topic_modeling_results/logs", exist_ok=True)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[
+            #logging.StreamHandler(sys.stdout),
+            logging.FileHandler("topic_modeling_results/logs/topic_modeling.log", mode='a', encoding='utf-8')
+        ]
+    )
+
     # scan parquet files as lazyframes
     logging.info("Loading parquet datasets...")
     if year is None:
