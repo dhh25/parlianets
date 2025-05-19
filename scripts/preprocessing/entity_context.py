@@ -14,6 +14,16 @@ def to_text_content(node):
     rawtxt = ''.join(node.itertext())
     return re.sub(r'\s+', ' ', rawtxt).strip()
 
+def to_lemmas(node):
+    content = []
+    for n in node.iter():
+        if isword(n):
+            content.append(n.attrib['lemma'].strip())
+        if ispunct(n):
+            content.append(n.text.strip())
+
+    return ' '.join(content)
+
 def xml_from_text_id(text_id, texts_df):
     xmlstr = texts_df.filter(pl.col('id') == text_id)['xml'][0].decode()
     return etree.fromstring(xmlstr)
