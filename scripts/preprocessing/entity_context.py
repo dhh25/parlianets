@@ -39,6 +39,10 @@ def process_name_node(position, unode, levels=0, transform_fn=to_text_content):
     
     return transform_fn(node)
 
+def extract_hierarchical_nodf(position, xmlstr, levels=0, transform_fn=to_text_content):
+    unode = etree.fromstring(xmlstr)
+    return process_name_node(position, unode, levels, transform_fn)
+
 def extract_hierarchical(position, text_id, texts_df, levels=0, transform_fn=to_text_content):
     unode = xml_from_text_id(text_id, texts_df)
     return process_name_node(position, unode, levels, transform_fn)
@@ -65,8 +69,7 @@ def limitwindow(nodel, width):
 
     return int(index[0].item()) + 1
 
-def extract_word_window(position, text_id, texts_df, width=0, transform_fn=to_text_content):
-    unode = xml_from_text_id(text_id, texts_df)
+def _extract_word_window_internal(position, unode, width, transform_fn):
     namenode = find_name(position, unode)
 
     # TODO improve
@@ -95,8 +98,15 @@ def extract_word_window(position, text_id, texts_df, width=0, transform_fn=to_te
 
     return transform_fn(unode)
 
-def extract_paragraph_window(position, text_id, texts_df, pgraph=0, transform_fn=to_text_content):
+def extract_word_window_nodf(position, xmlstr, width=0, transform_fn=to_text_content):
+    unode = etree.fromstring(xmlstr)
+    return _extract_word_window_internal(position, unode, width, transform_fn)
+
+def extract_word_window(position, text_id, texts_df, width=0, transform_fn=to_text_content):
     unode = xml_from_text_id(text_id, texts_df)
+    return _extract_word_window_internal(position, unode, width, transform_fn)
+
+def _extract_paragraph_window_internal(position, unode, pgraph, transform_fn):
     namenode = find_name(position, unode)
     segment = namenode.getparent().getparent()
 
@@ -116,3 +126,11 @@ def extract_paragraph_window(position, text_id, texts_df, pgraph=0, transform_fn
             unode.remove(child)
 
     return transform_fn(unode)
+
+def extract_paragraph_window_nodf(position, xmlstr, pgraph=0, transform_fn=to_text_content)
+    unode = etree.fromstring(xmlstr)
+    return _extract_paragraph_window_internal(position, unode, pgraph, transform_fn)
+
+def extract_paragraph_window(position, text_id, texts_df, pgraph=0, transform_fn=to_text_content):
+    unode = xml_from_text_id(text_id, texts_df)
+    return _extract_paragraph_window_internal(position, unode, pgraph, transform_fn)
