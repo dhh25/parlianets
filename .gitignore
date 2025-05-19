@@ -1,0 +1,66 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Ollama model files
+*.bin
+*.safetensors
+*.model
+*.gguf
+*.ggml
+
+# Large data files
+*.csv
+*.pkl
+*.h5
+*.npy
+*.npz
+
+# Exceptions to allow specific data files
+!sentiment_analyzer/raw_data/LLM_test_dataset.csv
+
+# Specify large files to exclude explicitly
+sentiment_analyzer/raw_data/Finnish-1-1.csv
+
+# Results folders (contain too much data)
+sentiment_analyzer/model_comparison/results_model_comparisons/sentiment_only/*
+sentiment_analyzer/model_comparison/results_model_comparisons/sentiment_topic/*
+sentiment_analyzer/parlament_analysis/results_finnish/*
+
+# Keep folder structure
+!sentiment_analyzer/model_comparison/results_model_comparisons/sentiment_only/.gitkeep
+!sentiment_analyzer/model_comparison/results_model_comparisons/sentiment_topic/.gitkeep
+!sentiment_analyzer/parlament_analysis/results_finnish/.gitkeep
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 
