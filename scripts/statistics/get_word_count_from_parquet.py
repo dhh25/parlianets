@@ -9,7 +9,7 @@ def process_file(input_file):
 
     parquet_df["word_count"] = parquet_df["xml"].map(lambda x: str(x).count("</w>"))
 
-    return parquet_df
+    return parquet_df[["id", "word_count"]]
 
 
 # the script should result in an identical parquet file with an additional column containing the number of words (<w> elements)
