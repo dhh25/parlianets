@@ -1,0 +1,10 @@
+faiss-cpu
+sentence-transformers
+transformers
+pandas
+pydantic
+lxml
+numpy
+tqdm
+black
+rich 
