@@ -56,7 +56,7 @@ def extract_topics(sentence, context, model, tokenizer):
     return dict(islice(probabilities.items(), 5))
 
 
-def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=None, context=None, context_length=None):
+def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=None, context_type=None, context_length=None):
     os.makedirs("topic_modeling_results/logs", exist_ok=True)
 
     logging.basicConfig(
@@ -118,10 +118,10 @@ def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=
             continue
 
         # extract the context from the xml text
-        if context == 'segment':
+        if context_type == 'segment':
             context = extract_hierarchical(
                     text_id, position, lf_texts, texts_index, levels=2)
-        elif context == 'words':
+        elif context_type == 'words':
             context = extract_word_window(position, text_id, lf_texts, texts_index, width=context_length)
 
         #logging.info(f"{iso2_cc}-{year}: Sentence: {sentence}")
