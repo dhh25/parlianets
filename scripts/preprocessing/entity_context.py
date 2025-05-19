@@ -127,7 +127,7 @@ def _extract_paragraph_window_internal(position, unode, pgraph, transform_fn):
 
     return transform_fn(unode)
 
-def extract_paragraph_window_nodf(position, xmlstr, pgraph=0, transform_fn=to_text_content)
+def extract_paragraph_window_nodf(position, xmlstr, pgraph=0, transform_fn=to_text_content):
     unode = etree.fromstring(xmlstr)
     return _extract_paragraph_window_internal(position, unode, pgraph, transform_fn)
 
