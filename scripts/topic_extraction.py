@@ -11,7 +11,7 @@ import os
 from multiprocessing import Pool, cpu_count
 import argparse
 
-from scripts.preprocessing_utils import get_years_from_filenames, to_text_content, xml_from_text_id, process_name_node
+from preprocessing_utils import get_years_from_filenames, xml_from_text_id, process_name_node, to_text_content, extract_word_window
 
 os.makedirs("topic_modeling_results/logs", exist_ok=True)
 
@@ -68,7 +68,7 @@ def extract_topics(sentence, context, model, tokenizer):
     return dict(islice(probabilities.items(), 5))
 
 
-def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=None):
+def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=None, context=None, context_length=None):
     # scan parquet files as lazyframes
     logging.info("Loading parquet datasets...")
     if year is None:
@@ -119,21 +119,25 @@ def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=
             continue
 
         # extract the context from the xml text
-        context = extract_hierarchical(
-                text_id, position, lf_texts, texts_index, levels=2)
-        # remove the sentence from the context
-        context = context.replace(
-                sentence, '') if context != sentence else context
+        if context == 'segment':
+            context = extract_hierarchical(
+                    text_id, position, lf_texts, texts_index, levels=2)
+        elif context == 'words':
+            context = extract_word_window(position, text_id, lf_texts, texts_index, width=context_length)
+
+        #logging.info(f"{iso2_cc}-{year}: Sentence: {sentence}")
+        #logging.info(f"{iso2_cc}-{year}: Context: {context}")
 
         # logging.info(f"{iso2_cc}-{year}: Context: {context}")
         topics = extract_topics(sentence, context, model, tokenizer)
 
-        # logging.info(f"{iso2_cc}-{year}: Topics: {topics}")
+        #logging.info(f"{iso2_cc}-{year}: Topics: {topics}")
         # logging.info(f'{iso2_cc}-{year}: ----')
 
         results.append({
                 "text_id": text_id,
                 "position": position,
+                "entity": entity['entity'],
                 "sentence": sentence,
                 "context": context,
                 "topics": str(topics)
@@ -173,6 +177,8 @@ if __name__ == "__main__":
                         help="Path to filtered entity files (with annotated metadata), e.g., ../ParlaMint_entities_filtered")
     parser.add_argument("--out_dir", type=str, help="Directory to write merged parquet file, e.g., ../ParlaMint_topics")
     parser.add_argument("--batch_size", "-b", type=int, default=100, help="Batch size")
+    parser.add_argument("--context", "-c", type=str, choices=['segment', 'words'], required=True, help="Whether to use segment context or word context. If the latter is used, the -cl argument can be used to specify the number of words to include in the context.")
+    parser.add_argument("--context_length", "-cl", type=int, default=100, help="Number of words to include in the context before and after the entity. Only used if -c is set to word.")
     parser.add_argument("--parallelize", "-p", type=int, default=0,
                         help="Number of cores to parallelize over. 0 means no parallelization; passing a negative number p computes cpu_count() - p.")
     args = parser.parse_args()
@@ -181,6 +187,8 @@ if __name__ == "__main__":
     preprocessed_dir = f"{args.preprocessed_dir}/{iso2_cc}"
     filtered_dir = f"{args.filtered_dir}"
     batch_size = args.batch_size
+    context = args.context
+    context_length = args.context_length
 
 
     years = get_years_from_filenames(os.listdir(preprocessed_dir))
@@ -189,9 +197,9 @@ if __name__ == "__main__":
 
     if parallelize != 0:
         with Pool(parallelize) as pool:
-            pool.starmap(main, [(preprocessed_dir, filtered_dir, batch_size, iso2_cc, year) for year in years])
+            pool.starmap(main, [(preprocessed_dir, filtered_dir, batch_size, iso2_cc, year, context, context_length) for year in years])
     else:
         for year in years:
-            main(preprocessed_dir, filtered_dir, batch_size, iso2_cc, year)
+            main(preprocessed_dir, filtered_dir, batch_size, iso2_cc, year, context, context_length)
 
     merge_parquets(iso2_cc, args.out_dir, remove=True)

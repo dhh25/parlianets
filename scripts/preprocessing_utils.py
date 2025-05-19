@@ -5,6 +5,7 @@ import country_converter as coco
 import pandas as pd
 import polars as pl
 from lxml import etree
+import numpy as np
 
 
 def get_years_from_filenames(filenames):
@@ -34,7 +35,7 @@ def is_of_interest(text, entities_of_interest):
 
 
 def to_text_content(node):
-    rawtxt = ''.join(node.itertext())
+    rawtxt = ''.join(node.itertext(r'{http://www.tei-c.org/ns/1.0}w', r'{http://www.tei-c.org/ns/1.0}pc'))
     return re.sub(r'\s+', ' ', rawtxt).strip()
 
 
@@ -66,3 +67,57 @@ def process_name_node(position, unode, levels=0, transform_fn=to_text_content):
 
 def get_country_name(iso2_cc):
     return coco.convert(iso2_cc, to="short")
+
+
+def isword(n):
+    return n.tag == r'{http://www.tei-c.org/ns/1.0}w'
+
+def ispunct(n):
+    return n.tag == r'{http://www.tei-c.org/ns/1.0}pc' 
+
+# Returns index of first element after width words
+def limitwindow(nodel, width):
+    if width == 0:
+        return 0
+
+    if width > len(nodel):
+        return len(nodel)
+
+    cs = np.cumsum(np.array([isword(n) for n in nodel]))
+    index = np.argwhere(cs == width)
+
+    if index.shape[0] == 0:
+        return len(nodel)
+
+    return int(index[0].item()) + 1
+
+
+def extract_word_window(position, text_id, texts_df, texts_index_df, width=0, transform_fn=to_text_content):
+    unode = xml_from_text_id(text_id, texts_df, texts_index_df)
+    namenode = find_name(position, unode)
+
+    # TODO improve
+    pre = list() # list of preceding nodes
+    post = list() # list of subsequent nodes
+    li = pre
+
+    for node in unode.iter(r'{http://www.tei-c.org/ns/1.0}w', r'{http://www.tei-c.org/ns/1.0}pc'):
+        if node == namenode[0]:
+            li = post
+
+        if node.getparent() == namenode:
+            continue
+
+        li.append(node)
+
+    pre = pre[::-1]
+    pre_exl = pre[limitwindow(pre, width):]
+    post_exl = post[limitwindow(post, width):]
+
+    # Remove unwanted nodes from tree to enable arbitrary node-based transform
+    for node in pre_exl:
+        node.getparent().remove(node)
+    for node in post_exl:
+        node.getparent().remove(node)
+
+    return transform_fn(unode)
