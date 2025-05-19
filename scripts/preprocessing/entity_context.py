@@ -11,12 +11,12 @@ def find_name(position, root):
     return root.find(f'.//*[@{idstring}=\'{position}\']', namespaces=namespaces).getparent()
 
 def to_text_content(node):
-    rawtxt = ''.join(node.itertext())
+    rawtxt = ''.join(node.itertext(r'{http://www.tei-c.org/ns/1.0}w', r'{http://www.tei-c.org/ns/1.0}pc'))
     return re.sub(r'\s+', ' ', rawtxt).strip()
 
 def to_lemmas(node):
     content = []
-    for n in node.iter():
+    for n in node.iter(r'{http://www.tei-c.org/ns/1.0}w', r'{http://www.tei-c.org/ns/1.0}pc'):
         if isword(n):
             content.append(n.attrib['lemma'].strip())
         if ispunct(n):
