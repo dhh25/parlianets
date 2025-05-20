@@ -53,7 +53,7 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
     results = []
     batch_count = 0
     save_every = batch_size
-    output_dir = f'{scratch}/{Path(target_dir).name}'
+    output_dir = f'{scratch}/{Path(target_dir).name}/{iso2_cc}'
     os.makedirs(output_dir, exist_ok=True)
 
     for i in trange(num_entities):
