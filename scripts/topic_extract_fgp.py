@@ -26,7 +26,7 @@ def get_tokenizer(model="xlm-roberta-large", cache_dir=None):
     return tokenizer
 
 
-def get_model(model="manifesto-project/manifestoberta-xlm-roberta-56policy-topics-context-2023-1-1", cache_dir=cache_dir):
+def get_model(model="manifesto-project/manifestoberta-xlm-roberta-56policy-topics-context-2023-1-1", cache_dir=None):
     model = AutoModelForSequenceClassification.from_pretrained(
         model, trust_remote_code=True, cache_dir=cache_dir)
 
