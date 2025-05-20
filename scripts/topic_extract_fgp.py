@@ -41,6 +41,8 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
         ]
     )
 
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     texts_file_filename = os.path.basename(texts_file)
     iso2_cc=os.path.basename(os.path.dirname(texts_file))
     year=texts_file_filename[:4]
@@ -54,8 +56,9 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
     # create an index to retrieve the xml text from the id (full texts make lf_texts too large to load into memory)
     texts_index = lf_texts.select('id').with_row_index('idx')
 
+    logging.info(f'{iso2_cc}-{year} Using device {device}')
     logging.info(f"{iso2_cc}-{year}: Loading model and tokenizer...")
-    model = get_model(cache_dir=cache_dir)
+    model = get_model(cache_dir=cache_dir).to(device)
     tokenizer = get_tokenizer(cache_dir=cache_dir)
     logging.info(f"{iso2_cc}-{year}: Model and tokenizer loaded.")
 
@@ -91,7 +94,7 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
             context = extract_hierarchical_nodf(position, xmlstr, levels=2)
         elif context_type == 'words':
             context = extract_word_window_nodf(position, xmlstr, width=context_length)
-        topics = extract_topics(sentence, context, model, tokenizer)
+        topics = extract_topics(sentence, context, model, tokenizer, device=device)
 
         results.append({
                 "text_id": text_id,

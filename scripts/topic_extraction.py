@@ -32,7 +32,7 @@ def get_model(model="manifesto-project/manifestoberta-xlm-roberta-56policy-topic
 
 
 # run the model on the sentence and context to extract the top 5 topics
-def extract_topics(sentence, context, model, tokenizer):
+def extract_topics(sentence, context, model, tokenizer, device='cpu'):
 
     # Tokenize the input sentence and context
     inputs = tokenizer(sentence,
@@ -41,10 +41,11 @@ def extract_topics(sentence, context, model, tokenizer):
                        max_length=300,  # we limited the input to 300 tokens during finetuning
                        padding="max_length",
                        truncation=True
-                       )
+                       ).to(device)
 
     # Get the model's predictions
-    logits = model(**inputs).logits
+    with torch.no_grad():
+        logits = model(**inputs).logits
 
     # Convert logits to probabilities
     probabilities = torch.softmax(logits, dim=1).tolist()[0]
