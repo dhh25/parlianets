@@ -112,24 +112,16 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
                 # "topics": str(topics)
             })
 
-        if len(batch) >= batch_size:
-            sentences = [elem['sentence'] for elem in batch]
-            contexts = [elem['context'] for elem in batch]
+        sentences = [elem['sentence'] for elem in batch]
+        contexts = [elem['context'] for elem in batch]
 
-            topics = extract_topics(sentences, contexts, model, tokenizer, device=device)
-            for i, tops in enumerate(topics):
-                batch[i]['topics'] = str(tops)
+        topics = extract_topics(sentences, contexts, model, tokenizer, device=device)
+        for j, tops in enumerate(topics):
+            batch[j]['topics'] = str(tops)
 
-            batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
-            pl.DataFrame(batch).write_parquet(batch_path)
-            logging.info(f"{iso2_cc}-{year}: Saved batch {batch_count} to {batch_path}")
-            batch.clear()
-            batch_count += 1
-
-    if batch:
-        batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
         pl.DataFrame(batch).write_parquet(batch_path)
-        logging.info(f"{iso2_cc}-{year}: Saved final batch {batch_count} to {batch_path}")
+        logging.info(f"{iso2_cc}-{year}: Saved batch {i} to {batch_path}")
+        batch.clear()
 
     logging.info(f"{iso2_cc}-{year}: Processing complete.")
 
