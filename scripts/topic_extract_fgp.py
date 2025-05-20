@@ -12,7 +12,7 @@ from multiprocessing import Pool, cpu_count
 import argparse
 import sys
 
-from topic_extraction import get_model, get_tokenizer, extract_topics
+from topic_extraction import extract_topics
 from preprocessing.entity_context import extract_hierarchical_nodf, extract_word_window_nodf
 from preprocessing_utils import get_years_from_filenames
 
@@ -20,7 +20,19 @@ def xml_from_text_id_lazy(text_id, texts_df, texts_index_df):
     idx = texts_index_df.filter(pl.col('id') == text_id).select('idx').collect().item()
     return texts_df.slice(idx, 1).select('xml').collect().item().decode()
 
-def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batch_size=100, context_type=None, context_length=None):
+def get_tokenizer(model="xlm-roberta-large", cache_dir=None):
+    tokenizer = AutoTokenizer.from_pretrained(model, cache_dir=cache_dir)
+
+    return tokenizer
+
+
+def get_model(model="manifesto-project/manifestoberta-xlm-roberta-56policy-topics-context-2023-1-1", cache_dir=cache_dir):
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model, trust_remote_code=True, cache_dir=cache_dir)
+
+    return model
+
+def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batch_size=100, context_type=None, context_length=None, cache_dir=None):
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -43,8 +55,8 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
     texts_index = lf_texts.select('id').with_row_index('idx')
 
     logging.info(f"{iso2_cc}-{year}: Loading model and tokenizer...")
-    model = get_model()
-    tokenizer = get_tokenizer()
+    model = get_model(cache_dir=cache_dir)
+    tokenizer = get_tokenizer(cache_dir=cache_dir)
     logging.info(f"{iso2_cc}-{year}: Model and tokenizer loaded.")
 
     num_entities = lf_entities.select(pl.len()).collect().item()

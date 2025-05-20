@@ -9,6 +9,7 @@ if __name__ == "__main__":
     parser.add_argument('--efile', type=str, required=False)
     parser.add_argument('--filtered_dir', type=str, required=False)
     parser.add_argument('--preproc_dir', type=str, required=False)
+    parser.add_argument('--cache_dir', type=str, required=False)
     args = parser.parse_args()
 
     main(
@@ -17,5 +18,6 @@ if __name__ == "__main__":
         filtered_dir=args.filtered_dir, # directory containing CC_filtered.parquet files
         texts_file=args.tfile, # text file, iso2cc and year inferred from this
         batch_size=100,
-        context_type='segment'
+        context_type='segment',
+        cache_dir=args.cache_dir
     )
