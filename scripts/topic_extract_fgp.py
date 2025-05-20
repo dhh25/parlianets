@@ -118,7 +118,7 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
             batch.clear()
             batch_count += 1
 
-    if results:
+    if batch:
         batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
         pl.DataFrame(batch).write_parquet(batch_path)
         logging.info(f"{iso2_cc}-{year}: Saved final batch {batch_count} to {batch_path}")
