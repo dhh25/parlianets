@@ -77,6 +77,10 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
     for i in trange(num_batches):
         this_batch_size = np.min([batch_size, num_entities - i * batch_size])
         entities = lf_entities.slice(i * batch_size, this_batch_size).collect().to_dicts()
+        batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{i}.parquet"
+
+        if os.path.exists(batch_path):
+            continue
 
         for entity in entities:
             position = entity['position']
