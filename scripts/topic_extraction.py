@@ -53,7 +53,7 @@ def extract_topics(sentence, context, model, tokenizer, device='cpu'):
     # Convert logits to probabilities
     for i in range(output.shape[0]):
         probabilities = {model.config.id2label[index]: round(
-            probability.item() * 100, 2) for index, probability in enumerate(output[0, :])}
+            probability.item() * 100, 2) for index, probability in enumerate(output[i, :])}
         probabilities = dict(sorted(probabilities.items(),
             key=lambda item: item[1], reverse=True))
 
