@@ -11,6 +11,7 @@ import os
 from multiprocessing import Pool, cpu_count
 import argparse
 import sys
+import numpy as np
 
 from topic_extraction import extract_topics
 from preprocessing.entity_context import extract_hierarchical_nodf, extract_word_window_nodf
@@ -71,38 +72,41 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
     output_dir = f'{scratch}/{Path(target_dir).name}/{iso2_cc}'
     os.makedirs(output_dir, exist_ok=True)
 
-    for i in trange(num_entities):
-        # get one row from the lazyframe
-        entity = lf_entities.slice(i, 1).collect().to_dicts()[0]
-        position = entity['position']
-        text_id = entity['text_id']
+    num_batches = int(np.ceil(num_entities/batch_size))
 
-        xmlstr = xml_from_text_id_lazy(text_id, lf_texts, texts_index)
+    for i in trange(num_batches):
+        this_batch_size = np.min([batch_size, num_entities - i * batch_size])
+        entities = lf_entities.slice(i * batch_size, this_batch_size).collect().to_dicts()
 
-        # extract the sentence from the xml text
-        sentence = extract_hierarchical_nodf(position, xmlstr, levels=1)
+        for entity in entities:
+            position = entity['position']
+            text_id = entity['text_id']
 
-        logging.info(f"{iso2_cc}-{year}: Entity: {entity['entity']}, {entity['name_type']}")
+            xmlstr = xml_from_text_id_lazy(text_id, lf_texts, texts_index)
+            # extract the sentence from the xml text
+            sentence = extract_hierarchical_nodf(position, xmlstr, levels=1)
 
-        if not sentence:
-            logging.warning(
-                    f"{iso2_cc}-{year}: Skipping entity {i}: could not extract sentence.")
-            continue
+            # logging.info(f"{iso2_cc}-{year}: Entity: {entity['entity']}, {entity['name_type']}")
 
-        # extract the context from the xml text
-        if context_type == 'segment':
-            context = extract_hierarchical_nodf(position, xmlstr, levels=2)
-        elif context_type == 'words':
-            context = extract_word_window_nodf(position, xmlstr, width=context_length)
+            if not sentence:
+                logging.warning(
+                        f"{iso2_cc}-{year}: Skipping entity {i}: could not extract sentence.")
+                continue
 
-        batch.append({
-            "text_id": text_id,
-            "position": position,
-            "entity": entity['entity'],
-            "sentence": sentence,
-            "context": context,
-            # "topics": str(topics)
-        })
+            # extract the context from the xml text
+            if context_type == 'segment':
+                context = extract_hierarchical_nodf(position, xmlstr, levels=2)
+            elif context_type == 'words':
+                context = extract_word_window_nodf(position, xmlstr, width=context_length)
+
+            batch.append({
+                "text_id": text_id,
+                "position": position,
+                "entity": entity['entity'],
+                "sentence": sentence,
+                "context": context,
+                # "topics": str(topics)
+            })
 
         if len(batch) >= batch_size:
             sentences = [elem['sentence'] for elem in batch]
