@@ -65,7 +65,7 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
     num_entities = lf_entities.select(pl.len()).collect().item()
     logging.info(f"{iso2_cc}-{year}: Processing {num_entities} entities...")
 
-    results = []
+    batch = []
     batch_count = 0
     save_every = batch_size
     output_dir = f'{scratch}/{Path(target_dir).name}/{iso2_cc}'
@@ -94,27 +94,33 @@ def main(target_dir=None, scratch=None, filtered_dir=None, texts_file=None, batc
             context = extract_hierarchical_nodf(position, xmlstr, levels=2)
         elif context_type == 'words':
             context = extract_word_window_nodf(position, xmlstr, width=context_length)
-        topics = extract_topics(sentence, context, model, tokenizer, device=device)
 
-        results.append({
-                "text_id": text_id,
-                "position": position,
-                "entity": entity['entity'],
-                "sentence": sentence,
-                "context": context,
-                "topics": str(topics)
-            })
+        batch.append({
+            "text_id": text_id,
+            "position": position,
+            "entity": entity['entity'],
+            "sentence": sentence,
+            "context": context,
+            # "topics": str(topics)
+        })
 
-        if len(results) >= save_every:
-                batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
-                pl.DataFrame(results).write_parquet(batch_path)
-                logging.info(f"{iso2_cc}-{year}: Saved batch {batch_count} to {batch_path}")
-                results.clear()
-                batch_count += 1
+        if len(batch) >= batch_size:
+            sentences = [elem['sentence'] for elem in batch]
+            contexts = [elem['context'] for elem in batch]
+
+            topics = extract_topics(sentences, contexts, model, tokenizer, device=device)
+            for i, tops in enumerate(topics):
+                batch[i]['topics'] = str(tops)
+
+            batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
+            pl.DataFrame(batch).write_parquet(batch_path)
+            logging.info(f"{iso2_cc}-{year}: Saved batch {batch_count} to {batch_path}")
+            batch.clear()
+            batch_count += 1
 
     if results:
         batch_path = f"{output_dir}/{Path(target_dir).name}_{year}_{batch_count}.parquet"
-        pl.DataFrame(results).write_parquet(batch_path)
+        pl.DataFrame(batch).write_parquet(batch_path)
         logging.info(f"{iso2_cc}-{year}: Saved final batch {batch_count} to {batch_path}")
 
     logging.info(f"{iso2_cc}-{year}: Processing complete.")

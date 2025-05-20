@@ -47,14 +47,19 @@ def extract_topics(sentence, context, model, tokenizer, device='cpu'):
     with torch.no_grad():
         logits = model(**inputs).logits
 
-    # Convert logits to probabilities
-    probabilities = torch.softmax(logits, dim=1).tolist()[0]
-    probabilities = {model.config.id2label[index]: round(
-        probability * 100, 2) for index, probability in enumerate(probabilities)}
-    probabilities = dict(sorted(probabilities.items(),
-                         key=lambda item: item[1], reverse=True))
+    output = torch.softmax(logits, dim=1).detach().to('cpu').numpy()
+    ret = []
 
-    return dict(islice(probabilities.items(), 5))
+    # Convert logits to probabilities
+    for i in range(output.shape[0]):
+        probabilities = {model.config.id2label[index]: round(
+            probability.item() * 100, 2) for index, probability in enumerate(output[0, :])}
+        probabilities = dict(sorted(probabilities.items(),
+            key=lambda item: item[1], reverse=True))
+
+        ret.append(dict(islice(probabilities.items(), 5)))
+
+    return ret
 
 
 def main(target_dir=None, filtered_dir=None, batch_size=100, iso2_cc=None, year=None, context_type=None, context_length=None):
