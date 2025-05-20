@@ -13,3 +13,5 @@ dependencies:
       - saxonche
       - torch
       - country_converter
+      - dotenv
+
