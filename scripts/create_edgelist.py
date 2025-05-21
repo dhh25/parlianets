@@ -25,4 +25,4 @@ if __name__ == '__main__':
         pl.scan_parquet(f).with_columns(
             pl.col("entity").map_elements(lambda x: mapping.get(x,x), return_dtype=pl.String).alias("target_country"),
             pl.lit(iso2_cc, dtype=pl.String).alias("source_country"),
-        ).select(pl.exclude("Session", "Meeting", "Sitting", "Term")).sink_parquet(f"{out_dir}/{iso2_prelim}_edges.parquet", compression="zstd")
+        ).select(pl.exclude("Session", "Meeting", "Sitting", "Term")).filter(pl.col("source_country") != pl.col("target_country")).sink_parquet(f"{out_dir}/{iso2_prelim}_edges.parquet", compression="zstd")
