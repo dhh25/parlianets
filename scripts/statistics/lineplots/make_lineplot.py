@@ -8,7 +8,7 @@ import argparse
 
 start_year = "2015"
 end_year = "2022"
-source_countries_list = ["FI", "FR", "IT", "NO", "SE", "GB", "HU", "AT", "ES", "DK", "CZ", "RS"]
+source_countries_list = ["PL", "CZ", "ES", "IT", "SK", "SI", "RS", "IS", "BA"]
 target_country = "UA"
 
 
