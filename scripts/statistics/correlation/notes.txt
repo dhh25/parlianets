@@ -1,0 +1,2 @@
+distance calculations obtained from https://www.distancefromto.net/, they are expressed in km
+country refugee data obtained from https://data.unhcr.org/ (refugees reported in country until the latest date available as of 22.05.2025)

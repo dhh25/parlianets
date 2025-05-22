@@ -2,10 +2,33 @@ import os
 
 import numpy as np
 import polars as pl
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import argparse
 from datetime import date
+
+
+def get_full_country_name(country_code):
+    return {"AT": "Austria", "BA": "Bosnia and Herzegovina", "BE": "Belgium", "BG": "Bulgaria", 
+            "CZ": "Czechia", 
+            "EE": "Estonia", 
+            "ES": "Spain", 
+            "FI": "Finland", 
+            "FR": "France", 
+            "GR": "Greece", 
+            "HR": "Croatia", 
+            "HU": "Hungary", 
+            "IS": "Iceland", 
+            "IT": "Italy", 
+            "LV": "Latvia", 
+            "NL": "Netherlands", 
+            "NO": "Norway", 
+            "PL": "Poland", 
+            "PT": "Portugal", 
+            "RS": "Serbia", 
+            "SI": "Slovenia", 
+            "TR": "Turkey"}[country_code]
 
 
 def get_default_countries():
@@ -99,12 +122,23 @@ def create_df_n_visualize(wc_folder, el_folder, target_country, source_countries
         final_window_df = pl.concat([final_window_df, edges_df])
     
     final_window_df.write_parquet(dataframe_filename)
+    final_window_df = final_window_df.with_columns(pl.col("_lower_boundary").alias("window_start_date"))
+
+    pdf = final_window_df.to_pandas()
+    pdf["source_country_full"] = pdf["source_country"].map(lambda x: get_full_country_name(x))
     
     # draw lineplot
     plt.figure(figsize=(12, 6))
-    sns.lineplot(data=final_window_df, x='window_timespan', y='mentions_normalized', hue='source_country')
+    sns.lineplot(data=pdf, x='window_start_date', y='mentions_normalized', hue='source_country_full')
     plt.ylabel(f"mentions per 100 000 words")
-    #plt.xticks(final_window_df.select(pl.col("Date_formatted").cast(pl.String)))
+
+    # Format x-axis to show only the year
+    plt.gca().xaxis.set_major_locator(plt.matplotlib.dates.YearLocator())
+    plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter("%Y"))
+    plt.xticks(rotation=45)
+    plt.xlabel("")
+
+    plt.legend(ncol=2)
     plt.title(f"Mentions of Ukraine for various countries from {start_date} to {end_date}")
     plt.savefig(plot_filename)
     plt.show()
@@ -112,7 +146,7 @@ def create_df_n_visualize(wc_folder, el_folder, target_country, source_countries
 
 if __name__ == "__main__":
     all_countries = get_default_countries()
-    #temp_relevant_countries = ",".join(["PL", "CZ", "ES", "IT", "SK", "SI", "RS", "IS", "BA"])
+    #temp_relevant_countries = ",".join(["PL", "CZ", "ES", "IT", "EE", "SK", "SI", "RS", "IS", "BA"])
 
     parser = argparse.ArgumentParser()
     parser.add_argument("output_dataframe_filename", type=str)
