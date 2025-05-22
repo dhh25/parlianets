@@ -16,7 +16,7 @@ if __name__ == '__main__':
     out_dir = '../ParlaMint_edgelists'
     os.makedirs(out_dir, exist_ok=True)
     df = pl.read_csv(coco.COUNTRY_DATA_FILE, separator="\t").select([pl.col("name_short"), pl.col("ISO2")])
-    mapping = {k.lower():v for k,v in zip(df.get_column("name_short"),df.get_column("ISO2"))} | {"us": "US", "usa": "US", "holland": "NL"}
+    mapping = {k.lower():v for k,v in zip(df.get_column("name_short"),df.get_column("ISO2"))} | {"us": "US", "usa": "US", "holland": "NL", "united states of america": "US"}
     mapping["greece"] = "GR"
     mapping["united kingdom"] = "GB"
     for f in sorted(glob("../ParlaMint_entities_filtered/**.parquet")):
